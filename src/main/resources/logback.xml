@@ -1,0 +1,17 @@
+<configuration>
+    <appender name="OnlineProctoringFileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/onlineProctoring.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>logs/onlineProctoring-%d{yy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>10</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="OnlineProctoringFileAppender"/>
+    </root>
+</configuration>

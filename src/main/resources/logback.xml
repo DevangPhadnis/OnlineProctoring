@@ -1,8 +1,8 @@
 <configuration>
     <appender name="OnlineProctoringFileAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>/var/log/onlineproctoring/onlineProctoring.log/onlineProctoring.log</file>
+        <file>/var/log/onlineproctoringlog/onlineProctoring.log</file>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>/var/log/onlineproctoring/onlineProctoring.log/onlineProctoring-%d{yy-MM-dd}.%i.log</fileNamePattern>
+            <fileNamePattern>/var/log/onlineproctoringlog/onlineProctoring-%d{yy-MM-dd}.%i.log</fileNamePattern>
             <maxFileSize>10MB</maxFileSize>
             <maxHistory>10</maxHistory>
         </rollingPolicy>

@@ -43,7 +43,7 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(customAuthenticationEntryPoint)
                         .accessDeniedHandler(customAccessDeniedHandler))
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/admin/login", "/admin/register", "/auth/oauth/google").permitAll()
+                        .requestMatchers("/user/login", "/user/register", "/auth/oauth/google").permitAll()
                         .requestMatchers("/user/profile", "/admin/fetchDepartment", "/admin/saveEmployee", "/admin/user-profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/admin/**", "/chart/dashboard").hasRole("ADMIN")
                         .requestMatchers("/user/**").hasRole("USER")

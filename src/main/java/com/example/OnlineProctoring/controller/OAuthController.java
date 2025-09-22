@@ -44,6 +44,13 @@ public class OAuthController {
             response.setStatus("0");
             return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        else if(token.equalsIgnoreCase("isManualTypeLogin")) {
+            Response response = new Response();
+            response.setData("isManualTypeLogin");
+            response.setMessage("Selected mail Id is already registered under manual Login. Please Enter username and password to login.");
+            response.setStatus("1");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
         else {
             Response response = new Response();
             response.setData(token);

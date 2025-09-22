@@ -1,22 +1,22 @@
 package com.example.OnlineProctoring.serviceImpl;
 
-import com.example.OnlineProctoring.models.Session;
-import com.example.OnlineProctoring.models.UserAuth;
-import com.example.OnlineProctoring.models.UserDTO;
-import com.example.OnlineProctoring.models.UserDetails;
+import com.example.OnlineProctoring.models.*;
 import com.example.OnlineProctoring.repository.SessionRepository;
 import com.example.OnlineProctoring.repository.UserDetailsRepository;
 import com.example.OnlineProctoring.repository.UserRepository;
 import com.example.OnlineProctoring.service.EmailService;
+import com.example.OnlineProctoring.service.OtpService;
 import com.example.OnlineProctoring.service.UserService;
 import com.example.OnlineProctoring.utils.JWTUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,6 +59,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private OtpService otpService;
+
+    @Value("${otp.expiryMinutes}")
+    private int expiryMinutes;
+
     @Override
     public Long addNewUser(UserDTO userDTO) throws RuntimeException {
         logger.info("Inside AddNewUser method of UserServiceImpl");
@@ -94,8 +100,7 @@ public class UserServiceImpl implements UserService {
                         "Your account has been successfully created on EMS.\n\n" +
                         "Login Credentials\n" +
                         "Username: " + userName + "\n" +
-                        "Password: " + password + "\n" +
-                        "Please Change the default password soon" + "\n\n" +
+                        "Password: " + password + "\n\n" +
                         "Thanks and Regards.\n";
 
                 emailService.sendEmailWithoutAttachment(to, subject, body);
@@ -113,9 +118,17 @@ public class UserServiceImpl implements UserService {
     public String verifyUser(UserAuth userAuth, HttpServletRequest request) throws Exception {
         logger.info("Inside VerifyUser method of UserServiceImpl");
         try {
-            UserAuth currentUserAuth = null;
+            UserAuth currentUserAuth;
             if(userAuth.getUserName().contains("@")) {
                 currentUserAuth = userRepository.findByEmail(userAuth.getUserName());
+            }
+            else {
+                currentUserAuth = userRepository.findByUserName(userAuth.getUserName());
+            }
+            if(currentUserAuth != null) {
+                if(currentUserAuth.getLoginType().equalsIgnoreCase("GOOGLE")) {
+                    return "isGoogleType";
+                }
             }
             String userName = currentUserAuth != null ? currentUserAuth.getUserName() : userAuth.getUserName();
             Authentication authentication = authenticationManager.authenticate(new
@@ -167,6 +180,107 @@ public class UserServiceImpl implements UserService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public Long sendOtpPassword(OtpDto otpDto, HttpServletRequest request) throws Exception {
+        logger.info("Inside SendOtpPassword method of UserServiceImpl");
+        try {
+            UserAuth userAuth1 = userRepository.findByUserName(otpDto.getUserName());
+            if(userAuth1 != null) {
+                if(userAuth1.getLoginType().equalsIgnoreCase("MANUAL")) {
+                    String ipAddress = request.getHeader("X-Forwarded-For");
+                    if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+                        ipAddress = request.getRemoteAddr();
+                    }
+                    String userAgent = request.getHeader("User-Agent");
+                    if (userAgent == null) {
+                        userAgent = "unknown";
+                    }
+                    String generatedOtp = otpService.generateOtp(userAuth1.getUserName(), "FORGET_PASSWORD", ipAddress, userAgent);
+                    if(generatedOtp.length() <= 1) {
+                        logger.info("RateLimitError found inside SendOtpPassword method of UserServiceImpl");
+                        return -1L;
+                    }
+                    else {
+                        logger.info("OTP Generated Successfully");
+                        String to = userAuth1.getEmail();
+                        String subject = "Forget Password Verification Code";
+                        String body = "Your verification code is: " + generatedOtp + "\n\nIt will expire in " + expiryMinutes + " minutes.";
+                        emailService.sendEmailWithoutAttachment(to, subject, body);
+                        logger.info("Outside SendOtpPassword method of UserServiceImpl");
+                        return 1L;
+                    }
+                } else {
+                    return 0L;
+                }
+            } else {
+                throw new UsernameNotFoundException("Please Enter a Valid UserName");
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Long verifyOtpPassword(OtpDto otpDto, HttpServletRequest request) throws Exception {
+        logger.info("Inside VerifyOtpPassword method of UserServiceImpl");
+        try {
+            UserAuth userAuth1 = userRepository.findByUserName(otpDto.getUserName());
+            if(userAuth1 != null) {
+                if(userAuth1.getLoginType().equalsIgnoreCase("MANUAL")) {
+                    String ipAddress = request.getHeader("X-Forwarded-For");
+                    if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
+                        ipAddress = request.getRemoteAddr();
+                    }
+                    String userAgent = request.getHeader("User-Agent");
+                    if (userAgent == null) {
+                        userAgent = "unknown";
+                    }
+                    String isOtpVerified = otpService.validateOtp(userAuth1.getUserName()
+                            , "FORGET_PASSWORD", otpDto.getProvidedOtp(), ipAddress, userAgent);
+                    if(isOtpVerified.equalsIgnoreCase("2")) {
+                        logger.info("RateLimitError found inside VerifyOtpPassword method of UserServiceImpl");
+                        return -1L;
+                    }
+                    else if(isOtpVerified.equalsIgnoreCase("maxAttemptsCompleted")) {
+                        logger.info("MaxAttemptsCompletedError found inside VerifyOtpPassword method of UserServiceImpl");
+                        return -2L;
+                    }
+                    else if(isOtpVerified.equalsIgnoreCase("false")) {
+                        logger.info("OTP Invalid Error found inside VerifyOtpPassword method of UserServiceImpl");
+                        return -3L;
+                    }
+                    else if(isOtpVerified.equalsIgnoreCase("true")) {
+                        logger.info("OTP Validated Successfully");
+                        String password = generateStrongPassword(12);
+                        String encodedPassword = bCryptPasswordEncoder.encode(password);
+                        userAuth1.setPassword(encodedPassword);
+                        userRepository.save(userAuth1);
+                        String name = userAuth1.getUserDetails().getFullName();
+                        String to = userAuth1.getEmail();
+                        String subject = "Password Changed Successfully";
+                        String body = "Dear " + name + ",\n\n" +
+                                "Your account password has been updated successfully.\n\n" +
+                                "New Login Credentials\n" +
+                                "Username: " + userAuth1.getUserName() + "\n" +
+                                "Password: " + password + "\n\n" +
+                                "Thanks and Regards.\n";
+                        emailService.sendEmailWithoutAttachment(to, subject, body);
+
+                        logger.info("Outside VerifyOtpPassword method of UserServiceImpl");
+                        return 1L;
+                    }
+                } else {
+                    return 0L;
+                }
+            } else {
+                throw new UsernameNotFoundException("Please Enter a Valid UserName");
+            }
+        } catch (RuntimeException e) {
+            throw new RuntimeException(e);
+        }
+        return null;
     }
 
     private String userNameCreation(String fullName) {

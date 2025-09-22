@@ -26,18 +26,21 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.Year;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @Transactional
 public class OAuthServiceImpl implements OAuthService {
 
     private static final Logger logger = LoggerFactory.getLogger(OAuthServiceImpl.class);
+    private static final String LOWERCASE_CHARS = "abcdefghijklmnopqrstuvwxyz";
+    private static final String UPPERCASE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final String DIGIT_CHARS = "0123456789";
+    private static final String SPECIAL_CHARS = "!@#$%^&*()-_=+[]{}|;:,.<>?";
+    private static final String ALL_CHARS = LOWERCASE_CHARS + UPPERCASE_CHARS + DIGIT_CHARS + SPECIAL_CHARS;
 
     @Value("${oauth.clientId}")
     private String clientId;
@@ -77,7 +80,8 @@ public class OAuthServiceImpl implements OAuthService {
                         userAuth1.setEmail(email);
                         userName = generateUserName(email);
                         userAuth1.setUserName(userName);
-                        userAuth1.setPassword(encoder.encode("GOOGLE_USER"));
+                        String randomStrongPassword = generateStrongPassword(12);
+                        userAuth1.setPassword(encoder.encode(randomStrongPassword));
                         userAuth1.setLoginType("GOOGLE");
                         userAuth1.setRole("USER");
                         role = "USER";
@@ -89,7 +93,11 @@ public class OAuthServiceImpl implements OAuthService {
                         userDetails.setCreatedDate(LocalDateTime.now());
                         userDetailsRepository.save(userDetails);
                     }
-
+                    else {
+                        if(userAuth.getLoginType().equalsIgnoreCase("MANUAL")) {
+                            return "isManualTypeLogin";
+                        }
+                    }
                     String fingerPrintRequestDetails = generateFingerPrintHash(request);
                     Optional<Session> sessionDetails =  sessionRepository.findByRequestDetails(fingerPrintRequestDetails);
                     String sessionId;
@@ -176,5 +184,39 @@ public class OAuthServiceImpl implements OAuthService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public static String generateStrongPassword(int length) {
+        if (length < 8) { // Recommend a minimum length for strong passwords
+            throw new IllegalArgumentException("Password length should be at least 8 characters.");
+        }
+
+        SecureRandom random = new SecureRandom();
+        StringBuilder passwordBuilder = new StringBuilder();
+
+        // Ensure at least one of each character type
+        passwordBuilder.append(LOWERCASE_CHARS.charAt(random.nextInt(LOWERCASE_CHARS.length())));
+        passwordBuilder.append(UPPERCASE_CHARS.charAt(random.nextInt(UPPERCASE_CHARS.length())));
+        passwordBuilder.append(DIGIT_CHARS.charAt(random.nextInt(DIGIT_CHARS.length())));
+        passwordBuilder.append(SPECIAL_CHARS.charAt(random.nextInt(SPECIAL_CHARS.length())));
+
+        // Fill the rest of the password with random characters from all sets
+        for (int i = 4; i < length; i++) {
+            passwordBuilder.append(ALL_CHARS.charAt(random.nextInt(ALL_CHARS.length())));
+        }
+
+        // Shuffle the characters to randomize their positions
+        List<Character> passwordChars = new ArrayList<>();
+        for (char c : passwordBuilder.toString().toCharArray()) {
+            passwordChars.add(c);
+        }
+        Collections.shuffle(passwordChars, random); // Use SecureRandom for shuffling
+
+        StringBuilder finalPassword = new StringBuilder();
+        for (char c : passwordChars) {
+            finalPassword.append(c);
+        }
+
+        return finalPassword.toString();
     }
 }

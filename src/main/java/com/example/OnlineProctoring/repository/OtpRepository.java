@@ -20,4 +20,16 @@ public interface OtpRepository extends JpaRepository<OtpDetails, Long> {
     @Modifying
     @Query("update OtpDetails o set o.activeFlag = false where o.expiresAt < :now and o.activeFlag = true")
     int deleteExpired(@Param("now")Instant now);
+
+    @Modifying
+    @Query("update OtpDetails o set o.activeFlag = false where o.recipient = :recipient and o.purpose = :purpose and o.activeFlag = true")
+    int deactivateActiveForRecipientPurpose(@Param("recipient") String recipient,
+                                            @Param("purpose") String purpose);
+
+    // deactivate other actives except one (used after success)
+    @Modifying
+    @Query("update OtpDetails o set o.activeFlag = false where o.recipient = :recipient and o.purpose = :purpose and o.id <> :otpId and o.activeFlag = true")
+    int deactivateOthers(@Param("recipient") String recipient,
+                         @Param("purpose") String purpose,
+                         @Param("otpId") Long otpId);
 }

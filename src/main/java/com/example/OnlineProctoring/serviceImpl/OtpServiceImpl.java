@@ -46,9 +46,11 @@ public class OtpServiceImpl implements OtpService {
         try {
             rateLimiterService.validateAllowed(recipient, requestIp);
 
+            otpRepository.deactivateActiveForRecipientPurpose(recipient, purpose);
+
             String otp = OtpUtils.generateNumericOtp(otpLength);
             String salt = OtpUtils.generateSalt();
-                String hash = OtpUtils.hashOtp(otp, salt);
+            String hash = OtpUtils.hashOtp(otp, salt);
 
             OtpDetails otpDetails = new OtpDetails();
             otpDetails.setRecipient(recipient);
@@ -106,6 +108,7 @@ public class OtpServiceImpl implements OtpService {
                 otpDetails.setActiveFlag(false);
                 otpDetails.setVerifiedAt(LocalDateTime.now());
                 otpRepository.save(otpDetails);
+                otpRepository.deactivateOthers(recipient, purpose, otpDetails.getOtpId());
                 rateLimiterService.recordSuccess(recipient);
                 return "true";
             } else {

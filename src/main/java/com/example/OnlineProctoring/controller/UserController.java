@@ -38,8 +38,12 @@ public class UserController {
                 response.setMessage("User Created Successfully");
                 response.setStatus("1");
                 responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
-            }
-            else {
+            } else if(flag == 2L) {
+                response.setData(null);
+                response.setMessage("User has already Registered via oauth/google. Please login using oauth/google.");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+            } else {
                 response.setData(0);
                 response.setMessage("User Already Exists");
                 response.setStatus("1");
@@ -130,7 +134,7 @@ public class UserController {
             logger.info("Error Found", e);
             response.setData(null);
             response.setMessage("Error in generating OTP.");
-            response.setData("1");
+            response.setStatus("1");
             responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;

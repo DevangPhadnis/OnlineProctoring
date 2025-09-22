@@ -1,6 +1,7 @@
 package com.example.OnlineProctoring.serviceImpl;
 
 import com.example.OnlineProctoring.models.*;
+import com.example.OnlineProctoring.repository.AuditRepository;
 import com.example.OnlineProctoring.repository.SessionRepository;
 import com.example.OnlineProctoring.repository.UserDetailsRepository;
 import com.example.OnlineProctoring.repository.UserRepository;
@@ -62,8 +63,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private OtpService otpService;
 
+    @Autowired
+    private AuditRepository auditRepository;
+
     @Value("${otp.expiryMinutes}")
     private int expiryMinutes;
+
 
     @Override
     public Long addNewUser(UserDTO userDTO) throws RuntimeException {
@@ -107,6 +112,10 @@ public class UserServiceImpl implements UserService {
 
                 logger.info("Outside AddNewUser method  of UserServiceImpl");
                 return 1L;
+            } else {
+                if(userAuth.getLoginType().equalsIgnoreCase("GOOGLE")) {
+                    return 2L;
+                }
             }
         } catch (RuntimeException e) {
             throw new RuntimeException(e);
@@ -186,9 +195,15 @@ public class UserServiceImpl implements UserService {
     public Long sendOtpPassword(OtpDto otpDto, HttpServletRequest request) throws Exception {
         logger.info("Inside SendOtpPassword method of UserServiceImpl");
         try {
-            UserAuth userAuth1 = userRepository.findByUserName(otpDto.getUserName());
-            if(userAuth1 != null) {
-                if(userAuth1.getLoginType().equalsIgnoreCase("MANUAL")) {
+            UserAuth currentUserAuth;
+            if(otpDto.getUserName().contains("@")) {
+                currentUserAuth = userRepository.findByEmail(otpDto.getUserName());
+            }
+            else {
+                currentUserAuth = userRepository.findByUserName(otpDto.getUserName());
+            }
+            if(currentUserAuth != null) {
+                if(currentUserAuth.getLoginType().equalsIgnoreCase("MANUAL")) {
                     String ipAddress = request.getHeader("X-Forwarded-For");
                     if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
                         ipAddress = request.getRemoteAddr();
@@ -197,17 +212,26 @@ public class UserServiceImpl implements UserService {
                     if (userAgent == null) {
                         userAgent = "unknown";
                     }
-                    String generatedOtp = otpService.generateOtp(userAuth1.getUserName(), "FORGET_PASSWORD", ipAddress, userAgent);
+                    String generatedOtp = otpService.generateOtp(currentUserAuth.getUserName(), "FORGET_PASSWORD", ipAddress, userAgent);
                     if(generatedOtp.length() <= 1) {
                         logger.info("RateLimitError found inside SendOtpPassword method of UserServiceImpl");
                         return -1L;
                     }
                     else {
+                        PasswordResetAudit passwordResetAudit = new PasswordResetAudit();
+                        passwordResetAudit.setUsername(currentUserAuth.getUserName());
+                        passwordResetAudit.setClientIp(ipAddress);
+                        passwordResetAudit.setUserAgent(userAgent);
+                        passwordResetAudit.setEvent("REQUESTED");
+                        passwordResetAudit.setDetails("Password Reset requested via OTP");
+                        passwordResetAudit.setEventTime(LocalDateTime.now());
+                        auditRepository.save(passwordResetAudit);
+
                         logger.info("OTP Generated Successfully");
-                        String to = userAuth1.getEmail();
+                        String to = currentUserAuth.getEmail();
                         String subject = "Forget Password Verification Code";
                         String body = "Your verification code is: " + generatedOtp + "\n\nIt will expire in " + expiryMinutes + " minutes.";
-                        emailService.sendEmailWithoutAttachment(to, subject, body);
+//                        emailService.sendEmailWithoutAttachment(to, subject, body);
                         logger.info("Outside SendOtpPassword method of UserServiceImpl");
                         return 1L;
                     }
@@ -226,9 +250,15 @@ public class UserServiceImpl implements UserService {
     public Long verifyOtpPassword(OtpDto otpDto, HttpServletRequest request) throws Exception {
         logger.info("Inside VerifyOtpPassword method of UserServiceImpl");
         try {
-            UserAuth userAuth1 = userRepository.findByUserName(otpDto.getUserName());
-            if(userAuth1 != null) {
-                if(userAuth1.getLoginType().equalsIgnoreCase("MANUAL")) {
+            UserAuth currentUserAuth;
+            if(otpDto.getUserName().contains("@")) {
+                currentUserAuth = userRepository.findByEmail(otpDto.getUserName());
+            }
+            else {
+                currentUserAuth = userRepository.findByUserName(otpDto.getUserName());
+            }
+            if(currentUserAuth != null) {
+                if(currentUserAuth.getLoginType().equalsIgnoreCase("MANUAL")) {
                     String ipAddress = request.getHeader("X-Forwarded-For");
                     if (ipAddress == null || ipAddress.isEmpty() || "unknown".equalsIgnoreCase(ipAddress)) {
                         ipAddress = request.getRemoteAddr();
@@ -237,36 +267,70 @@ public class UserServiceImpl implements UserService {
                     if (userAgent == null) {
                         userAgent = "unknown";
                     }
-                    String isOtpVerified = otpService.validateOtp(userAuth1.getUserName()
+                    String isOtpVerified = otpService.validateOtp(currentUserAuth.getUserName()
                             , "FORGET_PASSWORD", otpDto.getProvidedOtp(), ipAddress, userAgent);
                     if(isOtpVerified.equalsIgnoreCase("2")) {
                         logger.info("RateLimitError found inside VerifyOtpPassword method of UserServiceImpl");
+                        PasswordResetAudit passwordResetAudit = new PasswordResetAudit();
+                        passwordResetAudit.setUsername(currentUserAuth.getUserName());
+                        passwordResetAudit.setClientIp(ipAddress);
+                        passwordResetAudit.setUserAgent(userAgent);
+                        passwordResetAudit.setEvent("VERIFICATION_FAILED");
+                        passwordResetAudit.setDetails("Password Verification failed due to RateLimiter");
+                        passwordResetAudit.setEventTime(LocalDateTime.now());
+                        auditRepository.save(passwordResetAudit);
                         return -1L;
                     }
                     else if(isOtpVerified.equalsIgnoreCase("maxAttemptsCompleted")) {
                         logger.info("MaxAttemptsCompletedError found inside VerifyOtpPassword method of UserServiceImpl");
+                        PasswordResetAudit passwordResetAudit = new PasswordResetAudit();
+                        passwordResetAudit.setUsername(currentUserAuth.getUserName());
+                        passwordResetAudit.setClientIp(ipAddress);
+                        passwordResetAudit.setUserAgent(userAgent);
+                        passwordResetAudit.setEvent("VERIFICATION_FAILED");
+                        passwordResetAudit.setDetails("Password Verification failed due to MaxAttemptsReached");
+                        passwordResetAudit.setEventTime(LocalDateTime.now());
+                        auditRepository.save(passwordResetAudit);
                         return -2L;
                     }
                     else if(isOtpVerified.equalsIgnoreCase("false")) {
                         logger.info("OTP Invalid Error found inside VerifyOtpPassword method of UserServiceImpl");
+                        PasswordResetAudit passwordResetAudit = new PasswordResetAudit();
+                        passwordResetAudit.setUsername(currentUserAuth.getUserName());
+                        passwordResetAudit.setClientIp(ipAddress);
+                        passwordResetAudit.setUserAgent(userAgent);
+                        passwordResetAudit.setEvent("VERIFICATION_FAILED");
+                        passwordResetAudit.setDetails("Password Verification failed due to OTP Mismatch.");
+                        passwordResetAudit.setEventTime(LocalDateTime.now());
+                        auditRepository.save(passwordResetAudit);
                         return -3L;
                     }
                     else if(isOtpVerified.equalsIgnoreCase("true")) {
                         logger.info("OTP Validated Successfully");
                         String password = generateStrongPassword(12);
                         String encodedPassword = bCryptPasswordEncoder.encode(password);
-                        userAuth1.setPassword(encodedPassword);
-                        userRepository.save(userAuth1);
-                        String name = userAuth1.getUserDetails().getFullName();
-                        String to = userAuth1.getEmail();
+                        currentUserAuth.setPassword(encodedPassword);
+                        userRepository.saveAndFlush(currentUserAuth);
+
+                        PasswordResetAudit passwordResetAudit = new PasswordResetAudit();
+                        passwordResetAudit.setUsername(currentUserAuth.getUserName());
+                        passwordResetAudit.setClientIp(ipAddress);
+                        passwordResetAudit.setUserAgent(userAgent);
+                        passwordResetAudit.setEvent("VERIFICATION_SUCCESSFUL");
+                        passwordResetAudit.setDetails("Password Reset Successful via OTP method on mail. New password shared on mail.");
+                        passwordResetAudit.setEventTime(LocalDateTime.now());
+                        auditRepository.save(passwordResetAudit);
+
+                        String name = currentUserAuth.getUserDetails().getFullName();
+                        String to = currentUserAuth.getEmail();
                         String subject = "Password Changed Successfully";
                         String body = "Dear " + name + ",\n\n" +
                                 "Your account password has been updated successfully.\n\n" +
                                 "New Login Credentials\n" +
-                                "Username: " + userAuth1.getUserName() + "\n" +
+                                "Username: " + currentUserAuth.getUserName() + "\n" +
                                 "Password: " + password + "\n\n" +
                                 "Thanks and Regards.\n";
-                        emailService.sendEmailWithoutAttachment(to, subject, body);
+//                        emailService.sendEmailWithoutAttachment(to, subject, body);
 
                         logger.info("Outside VerifyOtpPassword method of UserServiceImpl");
                         return 1L;

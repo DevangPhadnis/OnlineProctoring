@@ -10,6 +10,7 @@ import com.example.OnlineProctoring.service.OtpService;
 import com.example.OnlineProctoring.service.UserService;
 import com.example.OnlineProctoring.utils.JWTUtils;
 import jakarta.servlet.http.HttpServletRequest;
+import org.hibernate.service.spi.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -241,8 +242,10 @@ public class UserServiceImpl implements UserService {
             } else {
                 throw new UsernameNotFoundException("Please Enter a Valid UserName");
             }
-        } catch (RuntimeException e) {
-            throw new RuntimeException(e);
+        } catch (UsernameNotFoundException usernameNotFoundException) {
+            throw new UsernameNotFoundException(usernameNotFoundException.getMessage());
+        } catch (Exception e) {
+            throw new ServiceException(e.getMessage());
         }
     }
 
@@ -341,10 +344,44 @@ public class UserServiceImpl implements UserService {
             } else {
                 throw new UsernameNotFoundException("Please Enter a Valid UserName");
             }
-        } catch (RuntimeException e) {
-            throw new RuntimeException(e);
+        } catch (UsernameNotFoundException usernameNotFoundException) {
+            throw new UsernameNotFoundException(usernameNotFoundException.getMessage());
+        } catch (Exception e) {
+            throw new ServiceException(e.getMessage());
         }
         return null;
+    }
+
+    @Override
+    public UserProfileDTO fetchLoggedInUserProfile(String userName) throws Exception {
+        logger.info("Inside FetchLoggedInUserProfile method of UserServiceImpl");
+        UserProfileDTO userProfileDTO = new UserProfileDTO();
+        try {
+            if(userName != null) {
+                UserAuth currentUserAuth = userRepository.findByUserName(userName);
+                if(currentUserAuth != null) {
+                    userProfileDTO.setUserName(userName);
+                    userProfileDTO.setUserId(currentUserAuth.getUserId());
+                    userProfileDTO.setEmailId(currentUserAuth.getEmail());
+                    UserDetails userDetails = currentUserAuth.getUserDetails();
+                    if(userDetails != null) {
+                        userProfileDTO.setFullName(userDetails.getFullName());
+                        userProfileDTO.setGender(userDetails.getGender());
+                        userProfileDTO.setMobileNumber(userDetails.getMobileNumber());
+                    }
+                    logger.info("Outside FetchLoggedInUserProfile method of UserServiceImpl");
+                    return userProfileDTO;
+                } else {
+                    throw new UsernameNotFoundException("UserName not Found.");
+                }
+            } else {
+                throw new UsernameNotFoundException("UserName not Found.");
+            }
+        } catch (UsernameNotFoundException usernameNotFoundException) {
+            throw new UsernameNotFoundException(usernameNotFoundException.getMessage());
+        } catch (Exception e) {
+            throw new ServiceException(e.getMessage());
+        }
     }
 
     private String userNameCreation(String fullName) {

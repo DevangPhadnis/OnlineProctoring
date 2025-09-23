@@ -1,11 +1,9 @@
 package com.example.OnlineProctoring.controller;
 
-import com.example.OnlineProctoring.models.OtpDto;
-import com.example.OnlineProctoring.models.Response;
-import com.example.OnlineProctoring.models.UserAuth;
-import com.example.OnlineProctoring.models.UserDTO;
+import com.example.OnlineProctoring.models.*;
 import com.example.OnlineProctoring.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
+import org.hibernate.service.spi.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,9 +11,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import java.security.Principal;
 
 @Controller
 @RequestMapping("/user")
@@ -190,6 +191,33 @@ public class UserController {
             responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
+        return responseEntity;
+    }
+
+    @GetMapping("/logged-in-user-profile")
+    public ResponseEntity<?> loggedInUserProfile(Principal principal) {
+        Response response = new Response();
+        ResponseEntity<?> responseEntity = null;
+        try {
+            String userName = principal.getName();
+            UserProfileDTO userProfileDTO = userService.fetchLoggedInUserProfile(userName);
+            response.setData(userProfileDTO);
+            response.setMessage("Successfully fetched logged in user's profile.");
+            response.setStatus("1");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (UsernameNotFoundException usernameNotFoundException) {
+            logger.error("Error Found", usernameNotFoundException);
+            response.setData(null);
+            response.setMessage("UserName is invalid please once logout and login again.");
+            response.setStatus("1");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Error Found", e);
+            response.setData(null);
+            response.setMessage("Error in Fetching Logged in user profile");
+            response.setStatus("1");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
         return responseEntity;
     }
 }

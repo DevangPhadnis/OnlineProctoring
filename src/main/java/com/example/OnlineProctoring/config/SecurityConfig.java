@@ -44,7 +44,7 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler))
                 .authorizeHttpRequests(request -> request
                         .requestMatchers("/user/login", "/user/register", "/auth/oauth/google", "/user/send-otp-forget-password", "/user/verify-otp-forget-password").permitAll()
-                        .requestMatchers("/user/profile", "/admin/fetchDepartment", "/admin/saveEmployee", "/admin/user-profile").hasAnyRole("USER","ADMIN")
+                        .requestMatchers("/user/logged-in-user-profile", "/admin/fetchDepartment", "/admin/saveEmployee", "/admin/user-profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/admin/**", "/chart/dashboard").hasRole("ADMIN")
                         .requestMatchers("/user/**").hasRole("USER")
                         .anyRequest().authenticated())

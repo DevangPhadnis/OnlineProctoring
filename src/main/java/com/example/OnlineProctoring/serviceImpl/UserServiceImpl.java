@@ -231,7 +231,7 @@ public class UserServiceImpl implements UserService {
                         String to = currentUserAuth.getEmail();
                         String subject = "Forget Password Verification Code";
                         String body = "Your verification code is: " + generatedOtp + "\n\nIt will expire in " + expiryMinutes + " minutes.";
-//                        emailService.sendEmailWithoutAttachment(to, subject, body);
+                        emailService.sendEmailWithoutAttachment(to, subject, body);
                         logger.info("Outside SendOtpPassword method of UserServiceImpl");
                         return 1L;
                     }
@@ -330,7 +330,7 @@ public class UserServiceImpl implements UserService {
                                 "Username: " + currentUserAuth.getUserName() + "\n" +
                                 "Password: " + password + "\n\n" +
                                 "Thanks and Regards.\n";
-//                        emailService.sendEmailWithoutAttachment(to, subject, body);
+                        emailService.sendEmailWithoutAttachment(to, subject, body);
 
                         logger.info("Outside VerifyOtpPassword method of UserServiceImpl");
                         return 1L;

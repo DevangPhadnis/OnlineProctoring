@@ -193,7 +193,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Long sendOtpPassword(OtpDto otpDto, HttpServletRequest request) throws Exception {
+    public Long sendOtpPassword(OtpDTO otpDto, HttpServletRequest request) throws Exception {
         logger.info("Inside SendOtpPassword method of UserServiceImpl");
         try {
             UserAuth currentUserAuth;
@@ -250,7 +250,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Long verifyOtpPassword(OtpDto otpDto, HttpServletRequest request) throws Exception {
+    public Long verifyOtpPassword(OtpDTO otpDto, HttpServletRequest request) throws Exception {
         logger.info("Inside VerifyOtpPassword method of UserServiceImpl");
         try {
             UserAuth currentUserAuth;

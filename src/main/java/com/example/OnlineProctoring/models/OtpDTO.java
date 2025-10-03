@@ -1,6 +1,6 @@
 package com.example.OnlineProctoring.models;
 
-public class OtpDto {
+public class OtpDTO {
 
     private String userName;
     private String providedOtp;

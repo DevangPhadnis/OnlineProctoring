@@ -3,7 +3,6 @@ package com.example.OnlineProctoring.controller;
 import com.example.OnlineProctoring.models.*;
 import com.example.OnlineProctoring.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
-import org.hibernate.service.spi.ServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -102,7 +101,7 @@ public class UserController {
     }
 
     @PostMapping("/send-otp-forget-password")
-    private ResponseEntity<?> sendOtpPassword(@RequestBody OtpDto otpDto, HttpServletRequest request) {
+    private ResponseEntity<?> sendOtpPassword(@RequestBody OtpDTO otpDto, HttpServletRequest request) {
         logger.info("Inside ForgetPassword method of UserController");
         Response response = new Response();
         ResponseEntity<?> responseEntity = null;
@@ -142,7 +141,7 @@ public class UserController {
     }
 
     @PostMapping("/verify-otp-forget-password")
-    private ResponseEntity<?> verifyOtpPassword(@RequestBody OtpDto otpDto, HttpServletRequest request) {
+    private ResponseEntity<?> verifyOtpPassword(@RequestBody OtpDTO otpDto, HttpServletRequest request) {
         logger.info("Inside VerifyOtpAndPassword method of UserController");
         Response response = new Response();
         ResponseEntity<?> responseEntity = null;

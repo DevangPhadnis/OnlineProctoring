@@ -10,12 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/exam")
@@ -54,6 +52,69 @@ public class ExamController {
         } catch (Exception e) {
             response.setData(null);
             response.setMessage("Error in creating an exam. Please check after sometime");
+            response.setStatus("1");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return responseEntity;
+    }
+
+    @PostMapping("fetch-ongoing-exams")
+    public ResponseEntity<?> fetchOngoingExams(@RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
+        logger.info("Inside FetchOngoingExam method of Exam Controller");
+        ResponseEntity<?> responseEntity = null;
+        Response response = new Response();
+        try {
+            List<ExamDTO> examDTOList = examService.fetchOngoingExams(pageNumber, pageSize);
+            if(examDTOList != null && !examDTOList.isEmpty()) {
+                response.setData(examDTOList);
+                response.setMessage("Successfully Fetched Ongoing Exam Details.");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+                logger.info("Outside FetchOngoingExam method of Exam Controller.");
+            }
+            else {
+                response.setData(examDTOList);
+                response.setMessage("No Ongoing Exams Found.");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                logger.info("Outside FetchOngoingExam method of Exam Controller with," +
+                        " No Ongoing Exam Details Found.");
+            }
+        } catch (Exception e) {
+            response.setData(null);
+            response.setMessage("Error in Fetching Ongoing Exam Details");
+            response.setStatus("1");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+
+        return responseEntity;
+    }
+
+    @PostMapping("fetch-upcoming-exams")
+    public ResponseEntity<?> fetchUpcomingExams(@RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
+        logger.info("Inside FetchUpcomingExams method of ExamController");
+        ResponseEntity<?> responseEntity = null;
+        Response response = new Response();
+        try {
+            List<ExamDTO> examDTOList = examService.fetchUpcomingExams(pageNumber, pageSize);
+            if(examDTOList != null && !examDTOList.isEmpty()) {
+                response.setData(examDTOList);
+                response.setMessage("Successfully Fetched Upcoming Exam Details.");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+                logger.info("Outside FetchUpcomingExams method of Exam Controller.");
+            } else {
+                response.setData(examDTOList);
+                response.setMessage("No Upcoming Exams Found.");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                logger.info("Outside FetchUpcomingExams method of Exam Controller with," +
+                        " No Upcoming Exam Details Found.");
+            }
+        } catch (Exception e) {
+            response.setData(null);
+            response.setMessage("Error in Fetching Upcoming Exam Details");
             response.setStatus("1");
             responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }

@@ -39,6 +39,8 @@ public class ExamDTO {
 
     private MultipartFile questionAnswerAttachment;
 
+    private Long totalRecords;
+
     public Long getExamId() {
         return examId;
     }
@@ -165,5 +167,13 @@ public class ExamDTO {
 
     public void setQuestionAnswerAttachment(MultipartFile questionAnswerAttachment) {
         this.questionAnswerAttachment = questionAnswerAttachment;
+    }
+
+    public Long getTotalRecords() {
+        return totalRecords;
+    }
+
+    public void setTotalRecords(Long totalRecords) {
+        this.totalRecords = totalRecords;
     }
 }

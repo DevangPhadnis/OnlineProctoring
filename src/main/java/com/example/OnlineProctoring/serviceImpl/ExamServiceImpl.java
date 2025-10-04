@@ -11,6 +11,9 @@ import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +42,7 @@ public class ExamServiceImpl implements ExamService {
     private UserRepository userRepository;
 
     @Override
-    public Long createExam(ExamDTO examDTO, String userName) throws Exception {
+    public void createExam(ExamDTO examDTO, String userName) throws Exception {
         logger.info("Inside CreateExam method of ExamServiceImpl");
         try {
             if(userName != null) {
@@ -121,7 +124,72 @@ public class ExamServiceImpl implements ExamService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return 0L;
+    }
+
+    @Override
+    public List<ExamDTO> fetchOngoingExams(Integer pageNumber, Integer pageSize) {
+        logger.info("Inside FetchOngoingExams method of ExamServiceImpl");
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Exam> examList = examRepository.
+                    findByStartDateLessThanEqualAndEndDateGreaterThanEqualAndActiveFlagOrderByStartDateDesc
+                            (LocalDateTime.now(), LocalDateTime.now(), true, pageable);
+            if(examList != null && !examList.isEmpty()) {
+                List<ExamDTO> examDTOList = new ArrayList<>();
+                for(Exam exam: examList) {
+                    ExamDTO examDTO = getExamDTO(exam);
+                    examDTO.setTotalRecords(examList.getTotalElements());
+                    examDTOList.add(examDTO);
+                }
+                logger.info("Outside FetchOngoingExams method of ExamServiceImpl");
+                return examDTOList;
+            } else {
+                logger.info("Outside FetchOngoingExams method of ExamServiceImpl with No Exams Found");
+                return Collections.emptyList();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<ExamDTO> fetchUpcomingExams(Integer pageNumber, Integer pageSize) {
+        logger.info("Inside FetchUpcomingExams method of ExamServiceImpl");
+        try {
+            Pageable pageable = PageRequest.of(pageNumber, pageSize);
+            Page<Exam> examList = examRepository.
+                    findByStartDateAfterAndActiveFlagOrderByStartDateDesc
+                            (LocalDateTime.now(), true, pageable);
+            if(examList != null && !examList.isEmpty()) {
+                List<ExamDTO> examDTOList = new ArrayList<>();
+                for(Exam exam: examList) {
+                    ExamDTO examDTO = getExamDTO(exam);
+                    examDTO.setTotalRecords(examList.getTotalElements());
+                    examDTOList.add(examDTO);
+                }
+                logger.info("Outside FetchUpcomingExams method of ExamServiceImpl");
+                return examDTOList;
+            } else {
+                logger.info("Outside FetchUpcomingExams method of ExamServiceImpl with No Exams Found");
+                return Collections.emptyList();
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static ExamDTO getExamDTO(Exam exam) {
+        ExamDTO examDTO = new ExamDTO();
+        examDTO.setExamId(exam.getExamId());
+        examDTO.setTitle(exam.getTitle());
+        examDTO.setDescription(exam.getDescription());
+        examDTO.setDurationInSeconds(exam.getDurationSeconds());
+        examDTO.setStatus(exam.getStatus());
+        examDTO.setNumberOfQuestion(exam.getNumberOfQuestions());
+        examDTO.setStartDateTime(exam.getStartDate());
+        examDTO.setEndDateTime(exam.getEndDate());
+        examDTO.setSubject(exam.getSubject());
+        return examDTO;
     }
 
     public List<?> generateQuestionAnswerFromFileBytes(String base64FileBytes) throws Exception {

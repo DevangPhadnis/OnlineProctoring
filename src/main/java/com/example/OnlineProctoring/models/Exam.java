@@ -46,6 +46,8 @@ public class Exam {
 
     private Long createdBy;
 
+    private Long attachmentId;
+
     public Long getExamId() {
         return examId;
     }
@@ -172,5 +174,13 @@ public class Exam {
 
     public void setCreatedBy(Long createdBy) {
         this.createdBy = createdBy;
+    }
+
+    public Long getAttachmentId() {
+        return attachmentId;
+    }
+
+    public void setAttachmentId(Long attachmentId) {
+        this.attachmentId = attachmentId;
     }
 }

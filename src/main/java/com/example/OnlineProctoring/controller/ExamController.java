@@ -25,7 +25,7 @@ public class ExamController {
     private ExamService examService;
 
     @PostMapping("/create-exam")
-    public ResponseEntity<?> createExam(@RequestBody ExamDTO examDTO, Principal principal) {
+    public ResponseEntity<?> createExam(@ModelAttribute ExamDTO examDTO, Principal principal) {
         logger.info("Inside CreateExam method of ExamController");
         ResponseEntity<?> responseEntity = null;
         Response response = new Response();

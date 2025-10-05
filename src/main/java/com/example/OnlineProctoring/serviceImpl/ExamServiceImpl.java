@@ -6,6 +6,7 @@ import com.example.OnlineProctoring.repository.AnswerOptionRepository;
 import com.example.OnlineProctoring.repository.ExamRepository;
 import com.example.OnlineProctoring.repository.QuestionsRepository;
 import com.example.OnlineProctoring.repository.UserRepository;
+import com.example.OnlineProctoring.service.AttachmentService;
 import com.example.OnlineProctoring.service.ExamService;
 import org.apache.poi.ss.usermodel.*;
 import org.slf4j.Logger;
@@ -41,6 +42,9 @@ public class ExamServiceImpl implements ExamService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private AttachmentService attachmentService;
+
     @Override
     public void createExam(ExamDTO examDTO, String userName) throws Exception {
         logger.info("Inside CreateExam method of ExamServiceImpl");
@@ -61,9 +65,71 @@ public class ExamServiceImpl implements ExamService {
                     exam.setUpdatedAt(null);
                     exam.setStartDate(examDTO.getStartDateTime());
                     exam.setEndDate(examDTO.getEndDateTime());
+                    exam.setCreatedBy(userAuth.getUserId());
 
                     if(examDTO.getQuestionAnswerAttachment() != null) {
+                        logger.info("Inside Excel Question Insert Condition for Exam Creation");
 
+                        Attachment attachment = new Attachment();
+                        String fileName = examDTO.getQuestionAnswerAttachment().getOriginalFilename();
+                        assert fileName != null;
+                        int index = fileName.lastIndexOf(".");
+                        attachment.setOriginalFileName(fileName);
+                        attachment.setContentType(examDTO.getQuestionAnswerAttachment().getContentType());
+                        if(index != -1) {
+                            attachment.setFileExtension(fileName.substring(index));
+                        }
+                        attachment.setCreatedDate(LocalDateTime.now());
+                        byte[] fileByteArray = examDTO.getQuestionAnswerAttachment().getBytes();
+                        attachment.setContentSize(String.valueOf
+                                (examDTO.getQuestionAnswerAttachment().getSize()));
+                        attachment = attachmentService.uploadAttachment(attachment, fileByteArray);
+
+                        exam.setAttachmentId(attachment.getAttachmentId());
+                        examRepository.saveAndFlush(exam);
+
+                        List<QuestionsDTO> questionsDTOList = generateQuestionAnswerFromFileBytes
+                                (examDTO.getQuestionAnswerAttachment().getBytes());
+
+                        for(QuestionsDTO questionsDTO: questionsDTOList) {
+                            Questions questions = new Questions();
+                            List<AnswerOption> answerOptionList = new ArrayList<>();
+                            questions.setQuestionType(questionsDTO.getQuestionType());
+                            questions.setQuestionText(questionsDTO.getQuestionText());
+                            questions.setDefaultMarks(questionsDTO.getDefaultMarks());
+                            questions.setDefaultNegativeMarks(questionsDTO.getDefaultNegativeMarks());
+                            questions.setDifficulty(questionsDTO.getDifficulty());
+                            questions.setSubject(questionsDTO.getSubject());
+                            questions.setExplanation(questionsDTO.getExplanation());
+                            questions.setActiveFlag(true);
+                            questions.setCreatedAt(LocalDateTime.now());
+                            questions.setCreatedBy(userAuth.getUserId());
+                            questions.setUpdatedAt(null);
+                            questions.setExam(exam);
+
+                            questionsRepository.saveAndFlush(questions);
+                            if(questionsDTO.getAnswerOptionDTOList() != null
+                                    && !questionsDTO.getAnswerOptionDTOList().isEmpty()) {
+                                for(AnswerOptionDTO answerOptionDTO: questionsDTO.getAnswerOptionDTOList()) {
+                                    AnswerOption answerOption = new AnswerOption();
+                                    answerOption.setOptionDetails(answerOptionDTO.getOptionDetails());
+                                    answerOption.setCorrect(answerOptionDTO.isCorrect());
+                                    answerOption.setDisplayOrder(answerOptionDTO.getDisplayOrder());
+                                    answerOption.setCreatedAt(LocalDateTime.now());
+                                    answerOption.setCreatedBy(userAuth.getUserId());
+                                    answerOption.setUpdatedAt(null);
+                                    answerOption.setActiveFlag(true);
+                                    answerOption.setQuestions(questions);
+
+                                    answerOptionList.add(answerOption);
+                                }
+                            } else {
+                                throw new ExamQuestionEmptyException("Please Provide Valid Question/Answers for Exam Creation.");
+                            }
+
+                            answerOptionRepository.saveAllAndFlush(answerOptionList);
+                        }
+                        logger.info("Outside Excel Upload Insert Condition for Exam Creation");
                     } else if((examDTO.getQuestionsList() != null && !examDTO.getQuestionsList().isEmpty())) {
                         examRepository.saveAndFlush(exam);
 
@@ -81,6 +147,7 @@ public class ExamServiceImpl implements ExamService {
                             questions.setActiveFlag(true);
                             questions.setCreatedAt(LocalDateTime.now());
                             questions.setUpdatedAt(null);
+                            questions.setCreatedBy(userAuth.getUserId());
                             questions.setExam(exam);
 
                             questionsRepository.saveAndFlush(questions);
@@ -92,6 +159,7 @@ public class ExamServiceImpl implements ExamService {
                                     answerOption.setCorrect(answerOptionDTO.isCorrect());
                                     answerOption.setDisplayOrder(answerOptionDTO.getDisplayOrder());
                                     answerOption.setCreatedAt(LocalDateTime.now());
+                                    answerOption.setCreatedBy(userAuth.getUserId());
                                     answerOption.setUpdatedAt(null);
                                     answerOption.setActiveFlag(true);
                                     answerOption.setQuestions(questions);
@@ -192,14 +260,7 @@ public class ExamServiceImpl implements ExamService {
         return examDTO;
     }
 
-    public List<?> generateQuestionAnswerFromFileBytes(String base64FileBytes) throws Exception {
-        byte[] fileBytes;
-        try {
-            fileBytes = Base64.getDecoder().decode(base64FileBytes);
-        } catch (IllegalArgumentException illegalArgumentException) {
-            throw new RuntimeException(illegalArgumentException);
-        }
-
+    public List<QuestionsDTO> generateQuestionAnswerFromFileBytes(byte[] fileBytes) throws Exception {
         try(InputStream is = new ByteArrayInputStream(fileBytes);
             Workbook workbook = WorkbookFactory.create(is)) {
 
@@ -215,8 +276,9 @@ public class ExamServiceImpl implements ExamService {
             }
 
             List<QuestionsDTO> questionsDTOList = new ArrayList<>();
-            int currentRowIndex = 1;
+            int currentRowIndex = 0;
             while(rowIterator.hasNext()) {
+                currentRowIndex++;
                 Row row = rowIterator.next();
                 if(isRowEmpty(row)) continue;
 
@@ -227,7 +289,7 @@ public class ExamServiceImpl implements ExamService {
                             .equalsIgnoreCase("MULTI_CHOICE")) {
                         questionsDTO.setQuestionType(QuestionType.MCQ_MULTI);
                     } else if(getCellString(row.getCell(headerMap.get("Question_Type")))
-                            .equalsIgnoreCase("SINGLE_CHOICE")) {
+                            .equalsIgnoreCase("MCQ_SINGLE")) {
                         questionsDTO.setQuestionType(QuestionType.MCQ_SINGLE);
                     } else if(getCellString(row.getCell(headerMap.get("Question_Type")))
                             .equalsIgnoreCase("MCQ_DESCRIPTIVE")) {
@@ -249,14 +311,186 @@ public class ExamServiceImpl implements ExamService {
                     throw new ExamQuestionEmptyException("Excel Format MisMatch.");
                 }
                 if(headerMap.containsKey("Question_Name")) {
+                    String questionName = getCellString(row.getCell(headerMap.get("Question_Name")));
+                    if(!questionName.isEmpty()) {
+                        questionsDTO.setQuestionText(questionName);
+                    } else {
+                        throw new ExamQuestionEmptyException("Question Name can't be empty at Row Number: "
+                                + currentRowIndex);
+                    }
+                } else {
+                    throw new ExamQuestionEmptyException("Excel Format MisMatch.");
+                };
+                int count = 0;
+                if(headerMap.containsKey("Option_One_(This will be marked as correct answer for this question)")) {
+                    String optionOne = getCellString(row.getCell(headerMap.get
+                            ("Option_One_(This will be marked as correct answer for this question)")));
+                    if(!optionOne.isEmpty()) {
+                        count++;
+                        AnswerOptionDTO answerOptionDTO = new AnswerOptionDTO();
+                        answerOptionDTO.setOptionDetails(optionOne);
+                        answerOptionDTO.setCorrect(true);
+                        answerOptionDTO.setActiveFlag(true);
+                        answerOptionDTO.setCreatedAt(LocalDateTime.now());
+                        answerOptionDTO.setDisplayOrder(0);
+
+                        answerOptionDTOList.add(answerOptionDTO);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Option at Row Number: "
+                                + currentRowIndex);
+                    }
                 } else {
                     throw new ExamQuestionEmptyException("Excel Format MisMatch.");
                 }
+                if(headerMap.containsKey("Option_Two")) {
+                    String optionTwo = getCellString(row.getCell(headerMap.get("Option_Two")));
+                    if(!optionTwo.isEmpty()) {
+                        count++;
+                        AnswerOptionDTO answerOptionDTO = new AnswerOptionDTO();
+                        answerOptionDTO.setOptionDetails(optionTwo);
+                        answerOptionDTO.setCorrect(false);
+                        answerOptionDTO.setActiveFlag(true);
+                        answerOptionDTO.setCreatedAt(LocalDateTime.now());
+                        answerOptionDTO.setDisplayOrder(0);
+
+                        answerOptionDTOList.add(answerOptionDTO);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Option at Row Number: "
+                                + currentRowIndex);
+                    }
+                }
+                if(headerMap.containsKey("Option_Three")) {
+                    String optionThree = getCellString(row.getCell(headerMap.get("Option_Three")));
+                    if(!optionThree.isEmpty()) {
+                        count++;
+                        AnswerOptionDTO answerOptionDTO = new AnswerOptionDTO();
+                        answerOptionDTO.setOptionDetails(optionThree);
+                        answerOptionDTO.setCorrect(false);
+                        answerOptionDTO.setActiveFlag(true);
+                        answerOptionDTO.setCreatedAt(LocalDateTime.now());
+                        answerOptionDTO.setDisplayOrder(0);
+
+                        answerOptionDTOList.add(answerOptionDTO);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Option at Row Number: "
+                                + currentRowIndex);
+                    }
+                }
+                if(headerMap.containsKey("Option_Four")) {
+                    String optionFour = getCellString(row.getCell(headerMap.get("Option_Four")));
+                    if(!optionFour.isEmpty()) {
+                        count++;
+                        AnswerOptionDTO answerOptionDTO = new AnswerOptionDTO();
+                        answerOptionDTO.setOptionDetails(optionFour);
+                        answerOptionDTO.setCorrect(false);
+                        answerOptionDTO.setActiveFlag(true);
+                        answerOptionDTO.setCreatedAt(LocalDateTime.now());
+                        answerOptionDTO.setDisplayOrder(0);
+
+                        answerOptionDTOList.add(answerOptionDTO);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Option at Row Number: "
+                                + currentRowIndex);
+                    }
+                }
+                if(headerMap.containsKey("Option_Five")) {
+                    String optionFive = getCellString(row.getCell(headerMap.get("Option_Five")));
+                    if(!optionFive.isEmpty()) {
+                        count++;
+                        AnswerOptionDTO answerOptionDTO = new AnswerOptionDTO();
+                        answerOptionDTO.setOptionDetails(optionFive);
+                        answerOptionDTO.setCorrect(false);
+                        answerOptionDTO.setActiveFlag(true);
+                        answerOptionDTO.setCreatedAt(LocalDateTime.now());
+                        answerOptionDTO.setDisplayOrder(0);
+
+                        answerOptionDTOList.add(answerOptionDTO);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Option at Row Number: "
+                                + currentRowIndex);
+                    }
+                }
+                if(count < 2) {
+                    throw new ExamQuestionEmptyException("Please Enter Sufficient amount of options for " +
+                            "Question at Row Number: " + currentRowIndex);
+                } else {
+                    questionsDTO.setAnswerOptionDTOList(answerOptionDTOList);
+                }
+                if(headerMap.containsKey("Default_Marks")) {
+                    if(row.getCell(headerMap.get("Default_Marks")).getCellType().toString().equals("NUMERIC")) {
+                        String defaultMarks = getCellString(row.getCell(headerMap.get("Default_Marks")));
+                        if(defaultMarks != null && Double.parseDouble(defaultMarks) > 0) {
+                            questionsDTO.setDefaultMarks(Double.valueOf(defaultMarks));
+                        } else {
+                            throw new ExamQuestionEmptyException("Please Enter " +
+                                    "valid marks at Row Number: " + currentRowIndex);
+                        }
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter " +
+                                "valid marks at Row Number: " + currentRowIndex);
+                    }
+                } else {
+                    throw new ExamQuestionEmptyException("Excel Format MisMatch.");
+                }
+                if(headerMap.containsKey("Negative_Marks")) {
+                    if(row.getCell(headerMap.get("Negative_Marks")).getCellType().toString().equals("NUMERIC")) {
+                        String negativeMarks = getCellString(row.getCell(headerMap.get("Negative_Marks")));
+                        if(negativeMarks != null) {
+                            questionsDTO.setDefaultNegativeMarks(Double.valueOf(negativeMarks));
+                        } else {
+                            throw new ExamQuestionEmptyException("Please Enter " +
+                                    "valid marks at Row Number: " + currentRowIndex);
+                        }
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter " +
+                                "valid marks at Row Number: " + currentRowIndex);
+                    }
+                } else {
+                    throw new ExamQuestionEmptyException("Excel Format MisMatch.");
+                }
+                if(headerMap.containsKey("Difficulty_Level")) {
+                    String difficultyLevel = getCellString(row.getCell(headerMap.get("Difficulty_Level")));
+                    if(difficultyLevel != null) {
+                        questionsDTO.setDifficulty(difficultyLevel);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Difficulty " +
+                                "Level at Row Number: " + currentRowIndex);
+                    }
+                } else {
+                    throw new ExamQuestionEmptyException("Excel Format MisMatch.");
+                }
+                if(headerMap.containsKey("Subject_Details")) {
+                    String subjectDetails = getCellString(row.getCell(headerMap.get("Subject_Details")));
+                    if(subjectDetails != null) {
+                        questionsDTO.setSubject(subjectDetails);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Subject Details " +
+                                "at Row Number: " + currentRowIndex);
+                    }
+                } else {
+                    throw new ExamQuestionEmptyException("Excel Format MisMatch.");
+                }
+                if(headerMap.containsKey("Question_Explanation")) {
+                    String questionExplanation = getCellString(row.getCell(headerMap.get("Question_Explanation")));
+                    if(questionExplanation != null) {
+                        questionsDTO.setExplanation(questionExplanation);
+                    } else {
+                        throw new ExamQuestionEmptyException("Please Enter a Valid Explanation " +
+                                "at Row Number: " + currentRowIndex);
+                    }
+                } else {
+                    throw new ExamQuestionEmptyException("Excel Format MisMatch.");
+                }
+
+                questionsDTOList.add(questionsDTO);
             }
+
+            return questionsDTOList;
+        } catch (ExamQuestionEmptyException examQuestionEmptyException) {
+            throw new ExamQuestionEmptyException(examQuestionEmptyException.getMessage());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        return Collections.emptyList();
     }
 
     private static boolean isRowEmpty(Row row) {

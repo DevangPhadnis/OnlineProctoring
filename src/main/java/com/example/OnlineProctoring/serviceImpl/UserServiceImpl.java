@@ -363,6 +363,7 @@ public class UserServiceImpl implements UserService {
                     userProfileDTO.setUserName(userName);
                     userProfileDTO.setUserId(currentUserAuth.getUserId());
                     userProfileDTO.setEmailId(currentUserAuth.getEmail());
+                    userProfileDTO.setRole(currentUserAuth.getRole());
                     UserDetails userDetails = currentUserAuth.getUserDetails();
                     if(userDetails != null) {
                         userProfileDTO.setFullName(userDetails.getFullName());

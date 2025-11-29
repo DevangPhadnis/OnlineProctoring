@@ -13,7 +13,7 @@ public class CorsConfig {
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
-                registry.addMapping("/**").allowedOrigins("http://localhost:4200", "http://localhost:3000", "http://ec2-3-82-98-7.compute-1.amazonaws.com", "http://ec2-3-82-98-7.compute-1.amazonaws.com:80")
+                registry.addMapping("/**").allowedOrigins("http://localhost:4200", "http://localhost:3000", "http://ec2-3-82-98-7.compute-1.amazonaws.com", "http://ec2-3-82-98-7.compute-1.amazonaws.com:80", "https://yellow-field-0a359f210.3.azurestaticapps.net")
                         .allowedMethods("GET", "POST", "DELETE", "POST", "PUT")
                         .allowedMethods("GET", "POST", "DELETE", "POST", "PUT")
                         .allowedHeaders("*")

@@ -65,7 +65,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000", "http://ec2-3-82-98-7.compute-1.amazonaws.com", "http://ec2-3-82-98-7.compute-1.amazonaws.com:80"));
+        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000", "http://ec2-3-82-98-7.compute-1.amazonaws.com", "http://ec2-3-82-98-7.compute-1.amazonaws.com:80", "https://yellow-field-0a359f210.3.azurestaticapps.net"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

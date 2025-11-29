@@ -71,6 +71,7 @@ public class OAuthServiceImpl implements OAuthService {
                     GoogleIdToken.Payload payload = googleIdToken.getPayload();
                     String email = payload.getEmail();
                     String name = (String) payload.get("name");
+                    String pictureUrl = (String) payload.get("picture");
 
                     UserAuth userAuth = userRepository.findByEmail(email);
                     String role = userAuth != null ? userAuth.getRole() : null;
@@ -91,6 +92,7 @@ public class OAuthServiceImpl implements OAuthService {
                         userDetails.setUserAuth(userAuth1);
                         userDetails.setFullName(name);
                         userDetails.setCreatedDate(LocalDateTime.now());
+                        userDetails.setAvatarUrl(pictureUrl);
                         userDetailsRepository.save(userDetails);
                     }
                     else {
@@ -129,8 +131,7 @@ public class OAuthServiceImpl implements OAuthService {
                         session.setRequestDetails(fingerPrintRequestDetails);
                         sessionRepository.save(session);
                     }
-                    String jwtToken = jwtUtils.generateToken(userName, role, sessionId);
-                    return jwtToken;
+                    return jwtUtils.generateToken(userName, role, sessionId);
                 }
                 else {
                     logger.error("Invalid Token Id");

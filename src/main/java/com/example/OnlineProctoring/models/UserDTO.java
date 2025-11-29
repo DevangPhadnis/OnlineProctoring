@@ -1,5 +1,7 @@
 package com.example.OnlineProctoring.models;
 
+import org.springframework.web.multipart.MultipartFile;
+
 public class UserDTO {
 
     private String userName;
@@ -9,6 +11,7 @@ public class UserDTO {
     private String gender;
     private String mobileNumber;
     private String role;
+    private MultipartFile photo;
 
     public String getUserName() {
         return userName;
@@ -64,5 +67,13 @@ public class UserDTO {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public MultipartFile getPhoto() {
+        return photo;
+    }
+
+    public void setPhoto(MultipartFile photo) {
+        this.photo = photo;
     }
 }

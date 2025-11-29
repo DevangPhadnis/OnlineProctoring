@@ -21,6 +21,8 @@ public class UserDetails {
     private String addressOne;
     private String addressTwo;
     private String addressThree;
+    private String avatarUrl;
+    private Long avatarAttachId;
     private LocalDateTime createdDate;
 
     @OneToOne
@@ -106,5 +108,21 @@ public class UserDetails {
 
     public void setAddressThree(String addressThree) {
         this.addressThree = addressThree;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
+    public Long getAvatarAttachId() {
+        return avatarAttachId;
+    }
+
+    public void setAvatarAttachId(Long avatarAttachId) {
+        this.avatarAttachId = avatarAttachId;
     }
 }

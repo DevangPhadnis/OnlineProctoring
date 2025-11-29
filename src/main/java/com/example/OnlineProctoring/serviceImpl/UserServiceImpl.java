@@ -5,6 +5,7 @@ import com.example.OnlineProctoring.repository.AuditRepository;
 import com.example.OnlineProctoring.repository.SessionRepository;
 import com.example.OnlineProctoring.repository.UserDetailsRepository;
 import com.example.OnlineProctoring.repository.UserRepository;
+import com.example.OnlineProctoring.service.AttachmentService;
 import com.example.OnlineProctoring.service.EmailService;
 import com.example.OnlineProctoring.service.OtpService;
 import com.example.OnlineProctoring.service.UserService;
@@ -22,7 +23,9 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -67,6 +70,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private AuditRepository auditRepository;
 
+    @Autowired
+    private AttachmentService attachmentService;
+
     @Value("${otp.expiryMinutes}")
     private int expiryMinutes;
 
@@ -96,7 +102,8 @@ public class UserServiceImpl implements UserService {
                 userDetails.setMobileNumber(userDTO.getMobileNumber());
                 userDetails.setCreatedDate(LocalDateTime.now());
                 userDetails.setUserAuth(userAuth1);
-
+                Long avatarAttachId = this.generateAvatarAttachId(userDTO.getPhoto());
+                userDetails.setAvatarAttachId(avatarAttachId);
                 userDetailsRepository.save(userDetails);
 
                 String name = userDTO.getFullName();
@@ -118,7 +125,7 @@ public class UserServiceImpl implements UserService {
                     return 2L;
                 }
             }
-        } catch (RuntimeException e) {
+        } catch (RuntimeException | IOException e) {
             throw new RuntimeException(e);
         }
         return flag;
@@ -369,6 +376,14 @@ public class UserServiceImpl implements UserService {
                         userProfileDTO.setFullName(userDetails.getFullName());
                         userProfileDTO.setGender(userDetails.getGender());
                         userProfileDTO.setMobileNumber(userDetails.getMobileNumber());
+                        if(userDetails.getAvatarUrl() != null) {
+                            userProfileDTO.setAvatarUrl(userDetails.getAvatarUrl());
+                        } else if(userDetails.getAvatarAttachId() != null) {
+                            String avatarUrl = attachmentService.generatePreSignedUrl(userDetails.getAvatarAttachId());
+                            userProfileDTO.setAvatarUrl(avatarUrl);
+                        } else {
+                            userProfileDTO.setAvatarUrl(null);
+                        }
                     }
                     logger.info("Outside FetchLoggedInUserProfile method of UserServiceImpl");
                     return userProfileDTO;
@@ -447,5 +462,23 @@ public class UserServiceImpl implements UserService {
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private Long generateAvatarAttachId(MultipartFile photo) throws IOException {
+        Attachment attachment = new Attachment();
+        String fileName = photo.getOriginalFilename();
+        assert fileName != null;
+        int index = fileName.lastIndexOf(".");
+        attachment.setOriginalFileName(fileName);
+        attachment.setContentType(photo.getContentType());
+        if(index != -1) {
+            attachment.setFileExtension(fileName.substring(index));
+        }
+        attachment.setCreatedDate(LocalDateTime.now());
+        byte[] fileByteArray = photo.getBytes();
+        attachment.setContentSize(String.valueOf
+                (photo.getSize()));
+        attachment = attachmentService.uploadAttachment(attachment, fileByteArray);
+        return attachment.getAttachmentId();
     }
 }

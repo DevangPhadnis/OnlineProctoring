@@ -16,6 +16,8 @@ public class UserProfileDTO {
 
     private String role;
 
+    private String avatarUrl;
+
     public String getUserName() {
         return userName;
     }
@@ -70,5 +72,13 @@ public class UserProfileDTO {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
     }
 }

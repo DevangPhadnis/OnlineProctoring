@@ -95,7 +95,7 @@ public class ExamController {
         return responseEntity;
     }
 
-    @PostMapping("fetch-ongoing-exams")
+    @PostMapping("/fetch-ongoing-exams")
     public ResponseEntity<?> fetchOngoingExams(@RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
         logger.info("Inside FetchOngoingExam method of Exam Controller");
         ResponseEntity<?> responseEntity = null;
@@ -113,7 +113,7 @@ public class ExamController {
                 response.setData(examDTOList);
                 response.setMessage("No Ongoing Exams Found.");
                 response.setStatus("1");
-                responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
                 logger.info("Outside FetchOngoingExam method of Exam Controller with," +
                         " No Ongoing Exam Details Found.");
             }
@@ -127,7 +127,7 @@ public class ExamController {
         return responseEntity;
     }
 
-    @PostMapping("fetch-upcoming-exams")
+    @PostMapping("/fetch-upcoming-exams")
     public ResponseEntity<?> fetchUpcomingExams(@RequestParam Integer pageNumber, @RequestParam Integer pageSize) {
         logger.info("Inside FetchUpcomingExams method of ExamController");
         ResponseEntity<?> responseEntity = null;
@@ -144,7 +144,7 @@ public class ExamController {
                 response.setData(examDTOList);
                 response.setMessage("No Upcoming Exams Found.");
                 response.setStatus("1");
-                responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+                responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
                 logger.info("Outside FetchUpcomingExams method of Exam Controller with," +
                         " No Upcoming Exam Details Found.");
             }

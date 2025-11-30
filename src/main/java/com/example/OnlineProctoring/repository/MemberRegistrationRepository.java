@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface MemberRegistrationRepository extends JpaRepository<MemberRegistration, Long> {
+
+    MemberRegistration findByExamExamIdAndUserIdAndActiveFlag(Long examId, Long userId, boolean activeFlag);
 }

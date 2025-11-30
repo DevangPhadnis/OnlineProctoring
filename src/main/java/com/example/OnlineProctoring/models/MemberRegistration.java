@@ -34,6 +34,8 @@ public class MemberRegistration {
     @JsonBackReference(value = "exam-members")
     private Exam exam;
 
+    private boolean activeFlag;
+
     public Long getMemberRegistrationId() {
         return memberRegistrationId;
     }
@@ -112,5 +114,13 @@ public class MemberRegistration {
 
     public void setTransactionId(Long transactionId) {
         this.transactionId = transactionId;
+    }
+
+    public boolean isActiveFlag() {
+        return activeFlag;
+    }
+
+    public void setActiveFlag(boolean activeFlag) {
+        this.activeFlag = activeFlag;
     }
 }

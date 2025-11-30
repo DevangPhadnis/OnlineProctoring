@@ -48,6 +48,10 @@ public class Exam {
 
     private Long attachmentId;
 
+    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL)
+    @JsonManagedReference(value = "exam-members")
+    private List<MemberRegistration> members;
+
     public Long getExamId() {
         return examId;
     }
@@ -182,5 +186,13 @@ public class Exam {
 
     public void setAttachmentId(Long attachmentId) {
         this.attachmentId = attachmentId;
+    }
+
+    public List<MemberRegistration> getMembers() {
+        return members;
+    }
+
+    public void setMembers(List<MemberRegistration> members) {
+        this.members = members;
     }
 }

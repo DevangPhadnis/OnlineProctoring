@@ -46,7 +46,7 @@ public class SecurityConfig {
                         .requestMatchers("/user/login", "/user/register", "/auth/oauth/google", "/user/send-otp-forget-password", "/user/verify-otp-forget-password").permitAll()
                         .requestMatchers("/user/logged-in-user-profile", "/exam/**", "/admin/fetchDepartment", "/admin/saveEmployee", "/admin/user-profile").hasAnyRole("USER","ADMIN")
                         .requestMatchers("/admin/**", "/chart/dashboard").hasRole("ADMIN")
-                        .requestMatchers("/user/**").hasRole("USER")
+                        .requestMatchers("/user/**", "/member/**").hasRole("USER")
                         .anyRequest().authenticated())
                 .csrf(AbstractHttpConfigurer::disable)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

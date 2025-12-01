@@ -14,6 +14,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.util.List;
 
 @RestController
 @RequestMapping("/member")
@@ -108,6 +109,39 @@ public class MemberController {
             response.setData(null);
             response.setStatus("1");
             response.setMessage("Error in starting an attempt. Please try after sometime");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return responseEntity;
+    }
+    @PostMapping("/get-exam-questions")
+    public ResponseEntity<?> getExamQuestionList(@RequestBody MemberExamAttemptDTO memberExamAttemptDTO
+            , @RequestParam Integer pageSize, @RequestParam Integer pageNumber) {
+        logger.info("Inside GetExamQuestionList method of MemberController");
+        ResponseEntity<?> responseEntity = null;
+        Response response = new Response();
+        try {
+            List<MemberExamAttemptDTO> memberExamAttemptDTOList = memberService.fetchExamQuestionList(memberExamAttemptDTO, pageNumber, pageSize);
+            if(memberExamAttemptDTOList != null && !memberExamAttemptDTOList.isEmpty()) {
+                response.setData(memberExamAttemptDTOList);
+                response.setStatus("1");
+                response.setMessage("Question List Fetched Successfully !!");
+            } else {
+                response.setData(null);
+                response.setStatus("1");
+                response.setMessage("Error in Fetching Question List. Please try after sometime !!");
+            }
+            responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+        } catch (MemberDetailsNotFoundException memberDetailsNotFoundException) {
+            logger.error("Error Found", memberDetailsNotFoundException);
+            response.setData(null);
+            response.setMessage(memberDetailsNotFoundException.getMessage());
+            response.setStatus("1");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Error Found", e);
+            response.setData(null);
+            response.setStatus("1");
+            response.setMessage("Error in fetch question List. Please try after sometime");
             responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
         }
         return responseEntity;

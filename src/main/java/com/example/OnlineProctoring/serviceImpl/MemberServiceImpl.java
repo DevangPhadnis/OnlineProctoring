@@ -5,6 +5,10 @@ import com.example.OnlineProctoring.models.*;
 import com.example.OnlineProctoring.repository.*;
 import com.example.OnlineProctoring.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -184,6 +188,53 @@ public class MemberServiceImpl implements MemberService {
             throw new MemberDetailsNotFoundException(memberDetailsNotFoundException.getMessage());
         } catch(UsernameNotFoundException usernameNotFoundException) {
             throw new UsernameNotFoundException(usernameNotFoundException.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<MemberExamAttemptDTO> fetchExamQuestionList(MemberExamAttemptDTO memberExamAttemptDTO, Integer pageNumber, Integer pageSize) {
+        try {
+            if(memberExamAttemptDTO.getAttemptId() != null) {
+                Optional<MemberExamAttempt> memberExamAttempt = memberExamAttemptRepository.
+                        findByAttemptIdAndActiveFlagAndAttemptStatus
+                                (memberExamAttemptDTO.getAttemptId(), true, "STARTED");
+                if(memberExamAttempt.isPresent() && memberExamAttempt.get().getEndsAt().isAfter(LocalDateTime.now())) {
+                    Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by("sequenceNumber"));
+                    Page<MemberExamQuestion> memberExamQuestions = memberExamQuestionRepository.
+                            findByMemberExamAttemptAttemptIdAndActiveFlag(memberExamAttemptDTO.getAttemptId(), true, pageable);
+                    List<MemberExamAttemptDTO> memberExamAttemptDTOList = new ArrayList<>();
+                    for(MemberExamQuestion memberExamQuestion: memberExamQuestions) {
+                        MemberExamAttemptDTO memberExamAttemptDTO1 = new MemberExamAttemptDTO();
+                        memberExamAttemptDTO1.setAttemptId(memberExamAttemptDTO.getAttemptId());;
+                        memberExamAttemptDTO1.setExamId(memberExamAttempt.get().getExam().getExamId());
+                        memberExamAttemptDTO1.setQuestionId(memberExamQuestion.getQuestions().getQuestionId());
+                        memberExamAttemptDTO1.setQuestionName(memberExamQuestion.getQuestions().getQuestionText());
+                        List<AnswerOptionDTO> answerOptionDTOList;
+                        List<AnswerOption> answerOptionList =
+                                new ArrayList<>(memberExamQuestion.getQuestions().getAnswerOptions());
+                        Collections.shuffle(answerOptionList);
+                        answerOptionDTOList = answerOptionList.stream().map
+                                (answerOption -> {
+                                    AnswerOptionDTO answerOptionDto = new AnswerOptionDTO();
+                                    answerOptionDto.setOptionId(answerOption.getOptionId());
+                                    answerOptionDto.setOptionDetails(answerOption.getOptionDetails());
+                                    return answerOptionDto;
+                                }).toList();
+                        memberExamAttemptDTO1.setAnswerOptionDTOList(answerOptionDTOList);
+
+                        memberExamAttemptDTOList.add(memberExamAttemptDTO1);
+                    }
+                    return memberExamAttemptDTOList;
+                } else {
+                    throw new MemberDetailsNotFoundException("This is not a valid attempt !!");
+                }
+            } else {
+                throw new MemberDetailsNotFoundException("Attempt Details not Found !!");
+            }
+        } catch (MemberDetailsNotFoundException memberDetailsNotFoundException) {
+            throw new MemberDetailsNotFoundException(memberDetailsNotFoundException.getMessage());
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

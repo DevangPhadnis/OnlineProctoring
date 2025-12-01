@@ -12,4 +12,7 @@ public interface MemberExamAttemptRepository extends JpaRepository<MemberExamAtt
     Optional<MemberExamAttempt>
     findByExamExamIdAndMemberRegistrationMemberRegistrationIdAndActiveFlag
             (Long examId, Long memberRegistrationId, boolean activeFlag);
+
+    Optional<MemberExamAttempt> findByAttemptIdAndActiveFlagAndAttemptStatus
+            (Long attemptId, boolean activeFlag, String attemptStatus);
 }

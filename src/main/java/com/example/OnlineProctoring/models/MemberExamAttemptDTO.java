@@ -12,9 +12,13 @@ public class MemberExamAttemptDTO {
 
     private String questionName;
 
-    private List<AnswerOptionDTO> answerOptionDTOList;
+    private List<MemberExamAttemptOptionDTO> answerOptionDTOList;
 
     private Long totalElements;
+
+    private QuestionType questionType;
+
+    private List<MemberExamQuestionAnswerDTO> memberExamQuestionAnswerList;
 
     public Long getAttemptId() {
         return attemptId;
@@ -48,11 +52,11 @@ public class MemberExamAttemptDTO {
         this.totalElements = totalElements;
     }
 
-    public List<AnswerOptionDTO> getAnswerOptionDTOList() {
+    public List<MemberExamAttemptOptionDTO> getAnswerOptionDTOList() {
         return answerOptionDTOList;
     }
 
-    public void setAnswerOptionDTOList(List<AnswerOptionDTO> answerOptionDTOList) {
+    public void setAnswerOptionDTOList(List<MemberExamAttemptOptionDTO> answerOptionDTOList) {
         this.answerOptionDTOList = answerOptionDTOList;
     }
 
@@ -62,5 +66,21 @@ public class MemberExamAttemptDTO {
 
     public void setQuestionName(String questionName) {
         this.questionName = questionName;
+    }
+
+    public QuestionType getQuestionType() {
+        return questionType;
+    }
+
+    public void setQuestionType(QuestionType questionType) {
+        this.questionType = questionType;
+    }
+
+    public List<MemberExamQuestionAnswerDTO> getMemberExamQuestionAnswerList() {
+        return memberExamQuestionAnswerList;
+    }
+
+    public void setMemberExamQuestionAnswerList(List<MemberExamQuestionAnswerDTO> memberExamQuestionAnswerList) {
+        this.memberExamQuestionAnswerList = memberExamQuestionAnswerList;
     }
 }

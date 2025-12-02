@@ -39,6 +39,9 @@ public class MemberServiceImpl implements MemberService {
     @Autowired
     private MemberExamQuestionRepository memberExamQuestionRepository;
 
+    @Autowired
+    private MemberExamQuestionAnswerRepository memberExamQuestionAnswerRepository;
+
     @Override
     public Integer memberRegistration(MemberRegistrationDTO memberRegistrationDTO, String userName) {
         try {
@@ -211,24 +214,50 @@ public class MemberServiceImpl implements MemberService {
                         memberExamAttemptDTO1.setExamId(memberExamAttempt.get().getExam().getExamId());
                         memberExamAttemptDTO1.setQuestionId(memberExamQuestion.getQuestions().getQuestionId());
                         memberExamAttemptDTO1.setQuestionName(memberExamQuestion.getQuestions().getQuestionText());
-                        List<AnswerOptionDTO> answerOptionDTOList;
+                        memberExamAttemptDTO1.setQuestionType(memberExamQuestion.getQuestions().getQuestionType());
+                        List<MemberExamQuestionAnswer> memberExamQuestionAnswerList =
+                                memberExamQuestionAnswerRepository.
+                                        findByMemberExamAttemptAttemptIdAndMemberExamQuestionMemQuestionIdAndActiveFlag
+                                                (memberExamAttemptDTO.getAttemptId(),
+                                                        memberExamQuestion.getMemQuestionId(), true);
+                        if(memberExamQuestionAnswerList != null && !memberExamQuestionAnswerList.isEmpty()) {
+                            List<MemberExamQuestionAnswerDTO> memberExamQuestionAnswerDTOList =
+                                    memberExamQuestionAnswerList.stream().map(selectedOptionDetails -> {
+                                        MemberExamQuestionAnswerDTO memberExamQuestionAnswerDTO =
+                                                new MemberExamQuestionAnswerDTO();
+                                        memberExamQuestionAnswerDTO.
+                                                setMemQuestionId(
+                                                        selectedOptionDetails.getMemberExamQuestion().getMemQuestionId());
+                                        memberExamQuestionAnswerDTO.
+                                                setAttemptId(selectedOptionDetails.getMemberExamAttempt().getAttemptId());
+                                        memberExamQuestionAnswerDTO.
+                                                setMemberExamQuesAnsId(selectedOptionDetails.getMemberExamQuesAnsId());
+                                        memberExamQuestionAnswerDTO.setSelectedOptionId(
+                                                selectedOptionDetails.getAnswerOption().getOptionId());
+                                        return memberExamQuestionAnswerDTO;
+                                    }).toList();
+                            memberExamAttemptDTO1.setMemberExamQuestionAnswerList(memberExamQuestionAnswerDTOList);
+                        } else {
+                            memberExamAttemptDTO1.setMemberExamQuestionAnswerList(new ArrayList<>());
+                        }
+                        List<MemberExamAttemptOptionDTO> answerOptionDTOList;
                         List<AnswerOption> answerOptionList =
                                 new ArrayList<>(memberExamQuestion.getQuestions().getAnswerOptions());
                         Collections.shuffle(answerOptionList);
                         answerOptionDTOList = answerOptionList.stream().map
                                 (answerOption -> {
-                                    AnswerOptionDTO answerOptionDto = new AnswerOptionDTO();
+                                    MemberExamAttemptOptionDTO answerOptionDto = new MemberExamAttemptOptionDTO();
                                     answerOptionDto.setOptionId(answerOption.getOptionId());
                                     answerOptionDto.setOptionDetails(answerOption.getOptionDetails());
                                     return answerOptionDto;
                                 }).toList();
                         memberExamAttemptDTO1.setAnswerOptionDTOList(answerOptionDTOList);
-
+                        memberExamAttemptDTO1.setTotalElements(memberExamQuestions.getTotalElements());
                         memberExamAttemptDTOList.add(memberExamAttemptDTO1);
                     }
                     return memberExamAttemptDTOList;
                 } else {
-                    throw new MemberDetailsNotFoundException("This is not a valid attempt !!");
+                    throw new MemberDetailsNotFoundException("Time is over for the selected Attempt !!");
                 }
             } else {
                 throw new MemberDetailsNotFoundException("Attempt Details not Found !!");

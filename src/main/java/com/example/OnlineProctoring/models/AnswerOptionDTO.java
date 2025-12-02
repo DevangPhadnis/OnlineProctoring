@@ -8,7 +8,7 @@ public class AnswerOptionDTO {
 
     private String optionDetails;
 
-    private Boolean isCorrect;
+    private boolean isCorrect = true;
 
     private Integer displayOrder;
 
@@ -17,7 +17,7 @@ public class AnswerOptionDTO {
     private LocalDateTime updatedAt;
 
     private boolean activeFlag;
-    
+
     public Long getOptionId() {
         return optionId;
     }

@@ -60,6 +60,7 @@ public class ExamServiceImpl implements ExamService {
                     exam.setShuffleQuestions(examDTO.isShuffleQuestions());
                     exam.setNegativeMarkingAllowed(examDTO.isNegativeMarkingAllowed());
                     exam.setSubject(examDTO.getSubject());
+                    exam.setNumberOfQuestions(examDTO.getNumberOfQuestion());
                     exam.setActiveFlag(true);
                     exam.setCreatedAt(LocalDateTime.now());
                     exam.setUpdatedAt(null);

@@ -22,10 +22,6 @@ public class MemberExamQuestion {
 
     private Integer sequenceNumber;
 
-    private Long selectedOptionId;
-
-    private Boolean isCorrectFlag;
-
     private LocalDateTime attemptedTime;
 
     private LocalDateTime createdAt;
@@ -64,21 +60,6 @@ public class MemberExamQuestion {
         this.sequenceNumber = sequenceNumber;
     }
 
-    public Long getSelectedOptionId() {
-        return selectedOptionId;
-    }
-
-    public void setSelectedOptionId(Long selectedOptionId) {
-        this.selectedOptionId = selectedOptionId;
-    }
-
-    public Boolean getCorrectFlag() {
-        return isCorrectFlag;
-    }
-
-    public void setCorrectFlag(Boolean correctFlag) {
-        isCorrectFlag = correctFlag;
-    }
 
     public LocalDateTime getAttemptedTime() {
         return attemptedTime;

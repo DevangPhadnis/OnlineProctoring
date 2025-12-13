@@ -5,6 +5,7 @@ import com.example.OnlineProctoring.models.*;
 import com.example.OnlineProctoring.repository.*;
 import com.example.OnlineProctoring.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +42,9 @@ public class MemberServiceImpl implements MemberService {
 
     @Autowired
     private MemberExamQuestionAnswerRepository memberExamQuestionAnswerRepository;
+
+    @Value("${running.environment}")
+    private String environment;
 
     @Override
     public Integer memberRegistration(MemberRegistrationDTO memberRegistrationDTO, String userName) {
@@ -163,7 +167,8 @@ public class MemberServiceImpl implements MemberService {
                             }
                         } else {
                             if(memberExamAttemptOptional.get().getAttemptStatus().equalsIgnoreCase("EXPIRED")
-                                    || memberExamAttemptOptional.get().getEndsAt().isBefore(LocalDateTime.now())) {
+                                    || (memberExamAttemptOptional.get().getEndsAt().isBefore(LocalDateTime.now())
+                                    && !environment.equalsIgnoreCase("DEV"))) {
                                 MemberExamAttempt memberExamAttempt = memberExamAttemptOptional.get();
                                 memberExamAttempt.setAttemptStatus("EXPIRED");
                                 memberExamAttemptRepository.saveAndFlush(memberExamAttempt);
@@ -203,7 +208,8 @@ public class MemberServiceImpl implements MemberService {
                 Optional<MemberExamAttempt> memberExamAttempt = memberExamAttemptRepository.
                         findByAttemptIdAndActiveFlagAndAttemptStatus
                                 (memberExamAttemptDTO.getAttemptId(), true, "STARTED");
-                if(memberExamAttempt.isPresent() && memberExamAttempt.get().getEndsAt().isAfter(LocalDateTime.now())) {
+                if(memberExamAttempt.isPresent() && (memberExamAttempt.get().getEndsAt().isAfter(LocalDateTime.now())
+                        || environment.equalsIgnoreCase("DEV"))) {
                     Pageable pageable = PageRequest.of(pageNumber, pageSize, Sort.by("sequenceNumber"));
                     Page<MemberExamQuestion> memberExamQuestions = memberExamQuestionRepository.
                             findByMemberExamAttemptAttemptIdAndActiveFlag(memberExamAttemptDTO.getAttemptId(), true, pageable);

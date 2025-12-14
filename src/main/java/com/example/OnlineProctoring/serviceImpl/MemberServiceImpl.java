@@ -113,7 +113,7 @@ public class MemberServiceImpl implements MemberService {
                         Optional<MemberExamAttempt> memberExamAttemptOptional = memberExamAttemptRepository.
                                 findByExamExamIdAndMemberRegistrationMemberRegistrationIdAndActiveFlag
                                         (memberExamAttemptDTO.getExamId(), memberRegistration.getMemberRegistrationId(), true);
-                        if(memberExamAttemptOptional.isEmpty() || environment.equalsIgnoreCase("DEV")) {
+                        if(memberExamAttemptOptional.isEmpty()) {
                             Optional<Exam> optionalExam = examRepository.
                                     findByStartDateLessThanEqualAndEndDateGreaterThanEqualAndActiveFlagAndExamId
                                             (LocalDateTime.now(), LocalDateTime.now(), true,

@@ -146,4 +146,43 @@ public class MemberController {
         }
         return responseEntity;
     }
+    @PostMapping("/submit-answer")
+    public ResponseEntity<?> submitAnswer(@RequestBody MemberExamAttemptDTO memberExamAttemptDTO) {
+        logger.info("Inside SubmitAnswer method of MemberController");
+        ResponseEntity<?> responseEntity = null;
+        Response response = new Response();
+        try {
+            Integer saveAnswerFlag = memberService.saveAnswer(memberExamAttemptDTO);
+            if(saveAnswerFlag != null && saveAnswerFlag == 1) {
+                response.setData(true);
+                response.setMessage("Answer Details saved successfully !!");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+            } else if(saveAnswerFlag != null && saveAnswerFlag == -1) {
+                response.setData(false);
+                response.setMessage("Question Details not found. Please Enter a Valid Question Id");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+            } else {
+                response.setData(false);
+                response.setMessage("Option Id is not Valid. Please Select a Valid Option Id");
+                response.setStatus("1");
+                responseEntity = new ResponseEntity<>(response, HttpStatus.OK);
+            }
+            logger.info("Outside SubmitAnswer method of MemberController");
+        } catch (MemberDetailsNotFoundException memberDetailsNotFoundException) {
+            logger.error("Error Found", memberDetailsNotFoundException);
+            response.setData(null);
+            response.setMessage(memberDetailsNotFoundException.getMessage());
+            response.setStatus("1");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            logger.error("Error Found", e);
+            response.setData(null);
+            response.setStatus("1");
+            response.setMessage("Error in answer submission. Please try after sometime.");
+            responseEntity = new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        return responseEntity;
+    }
 }

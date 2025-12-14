@@ -20,6 +20,8 @@ public class MemberExamAttemptDTO {
 
     private List<MemberExamQuestionAnswerDTO> memberExamQuestionAnswerList;
 
+    private Long memberExamQuestionId;
+
     public Long getAttemptId() {
         return attemptId;
     }
@@ -82,5 +84,13 @@ public class MemberExamAttemptDTO {
 
     public void setMemberExamQuestionAnswerList(List<MemberExamQuestionAnswerDTO> memberExamQuestionAnswerList) {
         this.memberExamQuestionAnswerList = memberExamQuestionAnswerList;
+    }
+
+    public Long getMemberExamQuestionId() {
+        return memberExamQuestionId;
+    }
+
+    public void setMemberExamQuestionId(Long memberExamQuestionId) {
+        this.memberExamQuestionId = memberExamQuestionId;
     }
 }

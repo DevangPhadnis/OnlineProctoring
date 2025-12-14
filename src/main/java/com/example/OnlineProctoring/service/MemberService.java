@@ -12,4 +12,6 @@ public interface MemberService {
     public MemberExamAttemptDTO startExam(MemberExamAttemptDTO memberExamAttemptDTO, String userName);
 
     public List<MemberExamAttemptDTO> fetchExamQuestionList(MemberExamAttemptDTO memberExamAttemptDTO, Integer pageNumber, Integer pageSize);
+
+    public Integer saveAnswer(MemberExamAttemptDTO memberExamAttemptDTO);
 }

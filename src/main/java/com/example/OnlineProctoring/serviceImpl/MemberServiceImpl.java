@@ -43,6 +43,9 @@ public class MemberServiceImpl implements MemberService {
     @Autowired
     private MemberExamQuestionAnswerRepository memberExamQuestionAnswerRepository;
 
+    @Autowired
+    private AnswerOptionRepository answerOptionRepository;
+
     @Value("${running.environment}")
     private String environment;
 
@@ -221,6 +224,7 @@ public class MemberServiceImpl implements MemberService {
                         memberExamAttemptDTO1.setQuestionId(memberExamQuestion.getQuestions().getQuestionId());
                         memberExamAttemptDTO1.setQuestionName(memberExamQuestion.getQuestions().getQuestionText());
                         memberExamAttemptDTO1.setQuestionType(memberExamQuestion.getQuestions().getQuestionType());
+                        memberExamAttemptDTO1.setMemberExamQuestionId(memberExamQuestion.getMemQuestionId());
                         List<MemberExamQuestionAnswer> memberExamQuestionAnswerList =
                                 memberExamQuestionAnswerRepository.
                                         findByMemberExamAttemptAttemptIdAndMemberExamQuestionMemQuestionIdAndActiveFlag
@@ -272,6 +276,59 @@ public class MemberServiceImpl implements MemberService {
             throw new MemberDetailsNotFoundException(memberDetailsNotFoundException.getMessage());
         } catch (Exception e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public Integer saveAnswer(MemberExamAttemptDTO memberExamAttemptDTO) {
+        try {
+            if(memberExamAttemptDTO.getAttemptId() != null) {
+                Optional<MemberExamAttempt> memberExamAttempt = memberExamAttemptRepository.
+                        findByAttemptIdAndActiveFlagAndAttemptStatus
+                                (memberExamAttemptDTO.getAttemptId(), true, "STARTED");
+                if(memberExamAttempt.isPresent() && (memberExamAttempt.get().getEndsAt().isAfter(LocalDateTime.now())
+                        || environment.equalsIgnoreCase("DEV"))) {
+                    Optional<MemberExamQuestion> memberExamQuestion = memberExamQuestionRepository.
+                            findById(memberExamAttemptDTO.getQuestionId());
+                    if(memberExamQuestion.isPresent()) {
+                        List<MemberExamQuestionAnswer> memberExamQuestionAnswerList = new ArrayList<>();
+                        for(MemberExamAttemptOptionDTO memberExamAttemptOptionDTO: memberExamAttemptDTO.getAnswerOptionDTOList()) {
+                            if(memberExamAttemptOptionDTO.getOptionId() != null) {
+                                Optional<AnswerOption> answerOption = answerOptionRepository.findById
+                                        (memberExamAttemptOptionDTO.getOptionId());
+                                if(answerOption.isPresent()) {
+                                    MemberExamQuestionAnswer memberExamQuestionAnswer = new MemberExamQuestionAnswer();
+                                    memberExamQuestionAnswer.setAnswerOption(answerOption.get());
+                                    memberExamQuestionAnswer.setMemberExamAttempt(memberExamAttempt.get());
+                                    memberExamQuestionAnswer.setMemberExamQuestion(memberExamQuestion.get());
+                                    memberExamQuestionAnswer.setActiveFlag(true);
+                                    memberExamQuestionAnswer.setCreatedAt(LocalDateTime.now());
+                                    memberExamQuestionAnswer.setCorrect(answerOption.get().isCorrect());
+
+                                    memberExamQuestionAnswerList.add(memberExamQuestionAnswer);
+                                } else {
+                                    return null;
+                                }
+                            } else {
+                                return null;
+                            }
+                        }
+
+                        memberExamQuestionAnswerRepository.saveAllAndFlush(memberExamQuestionAnswerList);
+                        return 1;
+                    } else {
+                        return -1;
+                    }
+                } else {
+                    throw new MemberDetailsNotFoundException("Attempt Details not Found !!");
+                }
+            } else {
+                throw new MemberDetailsNotFoundException("Attempt Details not Found !!");
+            }
+        } catch (MemberDetailsNotFoundException memberDetailsNotFoundException) {
+            throw new MemberDetailsNotFoundException(memberDetailsNotFoundException.getMessage());
+        } catch (Exception e) {
+            throw new RuntimeException(e.getMessage());
         }
     }
 }
